@@ -187,13 +187,13 @@ word NetSwarm::HregRead(word offset, word fallback) {
   if (setupDone) {
     return Hreg(offset);
 
-  #ifdef USE_MODBUS_EEPROM
+  #ifdef USE_NETSWARM_EEPROM
   // if we have valid data in the EEPROM, use that
   // @todo validate EEPROM data version
   } else if (dataVersion == currentDataVersion) {
     return (EEPROM.read(eepromOffset + 4 + offset * 2) << 8) +
            (EEPROM.read(eepromOffset + 4 + offset * 2 + 1));
-  #endif
+  #endif /* USE_NETSWARM_EEPROM */
 
   // otherwise fallback to default given
   } else {
