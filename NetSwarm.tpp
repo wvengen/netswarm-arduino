@@ -2,9 +2,13 @@
  * NetSwarm library
  *
  *
+ * Note that this implementation uses templates, which means it can't be
+ * compiled as a regular C++ file; it is included in the header instead.
+ * http://stackoverflow.com/q/495021/2866660
+ *
  * Created 05 Aug 2016
  * by wvengen
- * Modified 22 Aug 2016
+ * Modified 12 Sep 2016
  * by wvengen
  *
  * https://github.com/wvengen/netswarm-arduino/blob/master/NetSwarm.cpp
@@ -23,16 +27,17 @@
  * Public methods
  */
 
-NetSwarm::NetSwarm(byte dataVersion, unsigned int eepromOffset) {
+template<class ModbusT>
+NetSwarm<ModbusT>::NetSwarm(byte dataVersion, unsigned int eepromOffset) {
   #ifdef USE_NETSWARM_EEPROM
   this->dataVersion = dataVersion;
   this->eepromOffset = eepromOffset;
   #endif
   this->setupDone = false;
-  this->mb = new NETSWARM_MODBUS_CLASS();
 }
 
-void NetSwarm::config() {
+template<class ModbusT>
+void NetSwarm<ModbusT>::config() {
   #ifdef USE_NETSWARM_EEPROM
   setupEeprom();
   #endif
@@ -41,33 +46,36 @@ void NetSwarm::config() {
   setupDone = true;
 }
 
-void NetSwarm::setCommandCallback(command_callback_t callback) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::setCommandCallback(command_callback_t callback) {
   commandCallback = callback;
 }
 
-void NetSwarm::task() {
-  mb->task();
-  if (Coil(COIL_APPLY)) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::task() {
+  ModbusT::task();
+  if (ModbusT::Coil(COIL_APPLY)) {
     setupNetwork();
-    Coil(COIL_APPLY, 0);
+    ModbusT::Coil(COIL_APPLY, 0);
     if (commandCallback) commandCallback(COIL_APPLY);
   }
   #ifdef USE_NETSWARM_EEPROM
-  if (Coil(COIL_SAVE)) {
+  if (ModbusT::Coil(COIL_SAVE)) {
     saveEeprom();
-    Coil(COIL_SAVE, 0);
+    ModbusT::Coil(COIL_SAVE, 0);
     if (commandCallback) commandCallback(COIL_SAVE);
   }
-  if (Coil(COIL_LOAD)) {
+  if (ModbusT::Coil(COIL_LOAD)) {
     loadEeprom();
-    Coil(COIL_LOAD, 0);
+    ModbusT::Coil(COIL_LOAD, 0);
     if (commandCallback) commandCallback(COIL_LOAD);
   }
   #endif
 }
 
 #ifdef USE_NETSWARM_EEPROM
-bool NetSwarm::loadEeprom() {
+template<class ModbusT>
+bool NetSwarm<ModbusT>::loadEeprom() {
   // make sure we have valid data in the EEPROM
   setupEeprom();
   if (currentDataVersion == 0 || dataVersion != currentDataVersion) {
@@ -81,13 +89,14 @@ bool NetSwarm::loadEeprom() {
   do {
     w = (EEPROM.read(eepromOffset + 4 + reg->offset * 2 + 0) << 8) +
         (EEPROM.read(eepromOffset + 4 + reg->offset * 2 + 1));
-    mb->Hreg(reg->offset, w);
+    ModbusT::Hreg(reg->offset, w);
     reg = reg->next;
   } while(reg);
   return true;
 }
 
-void NetSwarm::saveEeprom() {
+template<class ModbusT>
+void NetSwarm<ModbusT>::saveEeprom() {
   // write header
   EEPROM.write(eepromOffset + 0, (byte)'N');
   EEPROM.write(eepromOffset + 1, (byte)'S');
@@ -99,7 +108,7 @@ void NetSwarm::saveEeprom() {
   if(reg == 0) return;
   word w;
   do {
-    w = mb->Hreg(reg->offset);
+    w = ModbusT::Hreg(reg->offset);
     EEPROM.write(eepromOffset + 4 + reg->offset * 2 + 0, (byte)(w >> 8));
     EEPROM.write(eepromOffset + 4 + reg->offset * 2 + 1, (byte)(w & 0xff));
     reg = reg->next;
@@ -107,12 +116,14 @@ void NetSwarm::saveEeprom() {
 }
 #endif /* USE_NETSWARM_EEPROM */
 
-byte NetSwarm::getId() {
+template<class ModbusT>
+byte NetSwarm<ModbusT>::getId() {
   word v = HregRead(HREG_IP_ADDR_2, HREG_IP_ADDR_DEFAULT_2) & 0xff;
   return v - NETSWARM_IP_START_4;
 }
 
-void NetSwarm::getIpAddr(byte ip[4]) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::getIpAddr(byte ip[4]) {
   word value;
 
   value = HregRead(HREG_IP_ADDR_1, HREG_IP_ADDR_DEFAULT_1);
@@ -123,18 +134,21 @@ void NetSwarm::getIpAddr(byte ip[4]) {
   ip[3] = value & 0xff;
 }
 
-void NetSwarm::getIpBcast(byte ip[4]) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::getIpBcast(byte ip[4]) {
   getIpAddr(ip);
   ip[3] = 0xff; // @todo configurable netmask
 }
 
-void NetSwarm::getMacAddr(byte mac[6]) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::getMacAddr(byte mac[6]) {
   mac[0] = 2;          // locally administered mac range, unicast
   getIpAddr(&mac[2]);
 }
 
 #ifdef USE_NETSWARM_MASTER
-void NetSwarm::sendHreg(IPAddress ip, word offset, word value) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::sendHreg(IPAddress ip, word offset, word value) {
     // use separate buffers to avoid trouble when packet in coming in
     byte sendbuffer[7 + 5]; // MBAP + frame
     byte *MBAP = &sendbuffer[0];
@@ -181,11 +195,12 @@ void NetSwarm::sendHreg(IPAddress ip, word offset, word value) {
  */
 
 // Read Modbus holding register with fallback to EEPROM and given value
-word NetSwarm::HregRead(word offset, word fallback) {
+template<class ModbusT>
+word NetSwarm<ModbusT>::HregRead(word offset, word fallback) {
   // if Modbus was fully setup, use memory registers
   //   enables e.g. applying network settings without saving in EEPROM
   if (setupDone) {
-    return Hreg(offset);
+    return ModbusT::Hreg(offset);
 
   #ifdef USE_NETSWARM_EEPROM
   // if we have valid data in the EEPROM, use that
@@ -201,14 +216,15 @@ word NetSwarm::HregRead(word offset, word fallback) {
   }
 }
 
-void NetSwarm::setupNetwork() {
+template<class ModbusT>
+void NetSwarm<ModbusT>::setupNetwork() {
   byte ip[4];
   byte mac[6];
 
   getIpAddr(ip);
   getMacAddr(mac);
 
-  mb->config(mac, ip);
+  ModbusT::config(mac, ip);
   #ifdef USE_NETSWARM_MASTER
   #ifdef USE_NETSWARM_MODBUS_IP
   // nothing to do
@@ -220,20 +236,22 @@ void NetSwarm::setupNetwork() {
 }
 
 // Setup default modbus registers
-void NetSwarm::setupRegisters() {
+template<class ModbusT>
+void NetSwarm<ModbusT>::setupRegisters() {
   // the ip-addresses are expected to be persistant and at the start
   addHregPersist(HREG_IP_ADDR_1, HregRead(HREG_IP_ADDR_1, HREG_IP_ADDR_DEFAULT_1));
   addHregPersist(HREG_IP_ADDR_2, HregRead(HREG_IP_ADDR_2, HREG_IP_ADDR_DEFAULT_2));
 
-  addCoil(COIL_APPLY);
+  ModbusT::addCoil(COIL_APPLY);
   #ifdef USE_NETSWARM_EEPROM
-  addCoil(COIL_SAVE);
-  addCoil(COIL_LOAD);
+  ModbusT::addCoil(COIL_SAVE);
+  ModbusT::addCoil(COIL_LOAD);
   #endif
 }
 
 #ifdef USE_NETSWARM_EEPROM
-void NetSwarm::setupEeprom() {
+template<class ModbusT>
+void NetSwarm<ModbusT>::setupEeprom() {
   // first make sure we have the magic 'NSd' at the beginning
   if (EEPROM.read(eepromOffset + 0) == (byte)'N' &&
       EEPROM.read(eepromOffset + 1) == (byte)'S' &&
@@ -245,7 +263,8 @@ void NetSwarm::setupEeprom() {
   }
 }
 
-void NetSwarm::setPersist(word offset) {
+template<class ModbusT>
+void NetSwarm<ModbusT>::setPersist(word offset) {
   // (based on Modbus::addReg implementation)
   TPRegister *reg;
   reg = (TPRegister*) malloc(sizeof(TPRegister));

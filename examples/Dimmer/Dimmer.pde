@@ -4,6 +4,8 @@
  *
  * Created 22 Aug 2016
  * by wvengen
+ * Updated 10 Sep 2016
+ * by wvengen
  *
  * https://github.com/wvengen/netswarm-arduino/blob/master/examples/Dimmer/Dimmer.pde
  */
@@ -22,7 +24,7 @@ enum modbusRegister {
   HREG_DIMMER = NETSWARM_MODBUS_OFFSET // we start with register number 100
 };
 
-NetSwarm ns;
+NetSwarm<ModbusUDP> ns;
 
 void setup() {
   // initialize NetSwarm

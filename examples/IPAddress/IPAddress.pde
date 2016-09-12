@@ -14,7 +14,7 @@
 #include <ModbusUDP.h>
 #include <NetSwarm.h>
 
-NetSwarm ns;
+NetSwarm<ModbusUDP> ns;
 
 // declare functions we're using so we can reference them
 void showIpAddr();
