@@ -11,10 +11,10 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Modbus.h>
-#include <ModbusUDP.h>
+#include <ModbusIP.h>
 #include <NetSwarm.h>
 
-NetSwarm<ModbusUDP> ns;
+NetSwarm<ModbusIP> ns;
 
 // declare functions we're using so we can reference them
 void showIpAddr();

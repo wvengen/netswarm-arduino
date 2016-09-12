@@ -13,7 +13,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Modbus.h>
-#include <ModbusUDP.h>
+#include <ModbusIP.h>
 #include <NetSwarm.h>
 
  // the pin that the LED is attached to
@@ -24,7 +24,7 @@ enum modbusRegister {
   HREG_DIMMER = NETSWARM_MODBUS_OFFSET // we start with register number 100
 };
 
-NetSwarm<ModbusUDP> ns;
+NetSwarm<ModbusIP> ns;
 
 void setup() {
   // initialize NetSwarm

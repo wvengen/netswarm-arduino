@@ -97,8 +97,6 @@ individually determines if the LED needs to be on or off, and if it sees that
 its conclusion is different from the current state, it broadcasts the new value
 over the network.
 
-**Note:** sending registers is a work in progress, the example might not work yet.
-
 ```cpp
 #include <SPI.h>
 #include <EEPROM.h>
@@ -124,6 +122,7 @@ enum modbusRegister {
 void setup() {
   // setup NetSwarm
   ns.config();
+  mbm.config();
   // add a register for the LED
   ns.addCoil(COIL_LED, 0);
   // setup LED output
@@ -134,14 +133,15 @@ void loop() {
   // handle incoming Modbus messages
   ns.task();
   // change the LED value when it's time
-  if ((millis() - lastChange) < (1000 + random(100))) {
+  if ((millis() - lastChange) > (1000 + random(100))) {
     // locally
-    ns.Coil(COIL_LED, !led);
+    led = !led;
+    ns.Coil(COIL_LED, led);
     // and on the network
     byte ip[4];
     ns.getIpBcast(ip);
-    mbm.sendCoil(ip, COIL_LED, !led);
-    lasChange = millis();
+    mbm.sendCoil(ip, COIL_LED, led);
+    lastChange = millis();
   }
   // finally update our own LED
   if (ns.Coil(COIL_LED) != led) {
