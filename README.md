@@ -109,6 +109,7 @@ over the network.
 
 const int PIN_LED = 9;
 NetSwarm<ModbusUDP> ns;
+ModbusMasterUDP mbm;
 
 // our current LED state
 bool led = false;
@@ -139,11 +140,11 @@ void loop() {
     // and on the network
     byte ip[4];
     ns.getIpBcast(ip);
-    ns.sendCoil(ip, COIL_LED, !led);
+    mbm.sendCoil(ip, COIL_LED, !led);
     lasChange = millis();
   }
   // finally update our own LED
-  if (ns.Coil(COIL_LED)) != led) {
+  if (ns.Coil(COIL_LED) != led) {
     led = ns.Coil(COIL_LED);
     digitalWrite(PIN_LED, led ? HIGH : LOW);
     lastChange = millis();

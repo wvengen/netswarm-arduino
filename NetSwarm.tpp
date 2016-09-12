@@ -146,49 +146,6 @@ void NetSwarm<ModbusT>::getMacAddr(byte mac[6]) {
   getIpAddr(&mac[2]);
 }
 
-#ifdef USE_NETSWARM_MASTER
-template<class ModbusT>
-void NetSwarm<ModbusT>::sendHreg(IPAddress ip, word offset, word value) {
-    // use separate buffers to avoid trouble when packet in coming in
-    byte sendbuffer[7 + 5]; // MBAP + frame
-    byte *MBAP = &sendbuffer[0];
-    byte *frame = &sendbuffer[7];
-    word len = 5;
-
-    memset(sendbuffer, 0, sizeof(sendbuffer));
-
-    // setup Modbus frame
-    frame[0] = MB_FC_WRITE_REG;
-    frame[1] = offset >> 8;
-    frame[2] = offset & 0xff;
-    frame[3] = value >> 8;
-    frame[4] = value & 0xff;
-
-    // setup MBAP header
-    MBAP[0] = _masterTransactionId >> 8;
-    MBAP[1] = _masterTransactionId & 0xff;
-    MBAP[4] = (len+1) >> 8;     //_len+1 for last byte from MBAP
-    MBAP[5] = (len+1) & 0x00FF;
-    _masterTransactionId++;
-
-    #ifdef USE_NETSWARM_MODBUS_IP
-    if (_masterTcp.connect(ip, MODBUSIP_PORT)) {
-        _masterTcp.write(sendbuffer, len + 7);
-        #ifndef TCP_KEEP_ALIVE
-        _masterTcp.stop();
-        #endif
-    }
-    #endif /* USE_NETSWARM_MODBUS_IP */
-
-    #ifdef USE_NETSWARM_MODBUS_UDP
-    // setup new udp instance to use other port than slave
-    _masterUdp.beginPacket(ip, MODBUSIP_PORT);
-    _masterUdp.write(sendbuffer, len + 7);
-    _masterUdp.endPacket();
-    #endif /* USE_NETSWARM_MODBUS_UDP */
-}
-#endif /* USE_NETSWARM_MASTER */
-
 
 /***
  * Private methods
@@ -225,14 +182,6 @@ void NetSwarm<ModbusT>::setupNetwork() {
   getMacAddr(mac);
 
   ModbusT::config(mac, ip);
-  #ifdef USE_NETSWARM_MASTER
-  #ifdef USE_NETSWARM_MODBUS_IP
-  // nothing to do
-  #endif
-  #ifdef USE_NETSWARM_MODBUS_UDP
-  _masterUdp.begin(NETSWARM_MASTER_PORT);
-  #endif
-  #endif /* USE_NETSWARM_MASTER */
 }
 
 // Setup default modbus registers
