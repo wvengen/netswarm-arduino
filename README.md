@@ -16,7 +16,7 @@ Features:
 - Modbus protocol (using [modbus-arduino](https://github.com/wvengen/modbus-arduino))
 - Registers can persist in EEPROM
 - Broadcast support when using UDP/IP
-- A [monitoring and debugging webapp](https://github.com/wvengen/netswarm-monitor)
+- A [monitoring and debugging webapp](https://github.com/wvengen/netswarm-webapp)
 
 
 Getting started
