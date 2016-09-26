@@ -135,12 +135,12 @@ void loop() {
   // change the LED value when it's time
   if ((millis() - lastChange) > (1000 + random(100))) {
     // locally
-    led = !led;
-    ns.Coil(COIL_LED, led);
+    bool newLed = !led;
+    ns.Coil(COIL_LED, newLed);
     // and on the network
     byte ip[4];
     ns.getIpBcast(ip);
-    mbm.sendCoil(ip, COIL_LED, led);
+    mbm.sendCoil(ip, COIL_LED, newLed);
     lastChange = millis();
   }
   // finally update our own LED

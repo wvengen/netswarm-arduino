@@ -7,10 +7,10 @@
  *
  * Created 12 Sep 2016
  * by wvengen
- * Updated 12 Sep 2016
+ * Updated 26 Sep 2016
  * by wvengen
  *
- * https://github.com/wvengen/netswarm-arduino/blob/master/examples/SwarmBlink/SwarmBlink.ino
+ * https://github.com/wvengen/netswarm-arduino/blob/master/examples/SwarmBlink/SwarmBlink.pde
  */
 #include <SPI.h>
 #include <EEPROM.h>
@@ -52,20 +52,20 @@ void loop() {
   // change the LED value when it's time
   if ((millis() - lastChange) > (1000 + random(100))) {
     // locally
-    led = !led;
-    ns.Coil(COIL_LED, led);
+    bool newLed = !led;
+    ns.Coil(COIL_LED, newLed);
     // and on the network
     byte ip[4];
     ns.getIpBcast(ip);
-    mbm.sendCoil(ip, COIL_LED, led);
+    mbm.sendCoil(ip, COIL_LED, newLed);
     lastChange = millis();
     Serial.print("Turning ");
-    Serial.println(led ? "on (self)" : "off (self)");
+    Serial.println(newLed ? "on (self)" : "off (self)");
   }
   // finally update our own LED
   if (ns.Coil(COIL_LED) != led) {
     led = ns.Coil(COIL_LED);
-    //digitalWrite(PIN_LED, led ? HIGH : LOW);
+    digitalWrite(PIN_LED, led ? HIGH : LOW);
     lastChange = millis();
     Serial.print("Turning ");
     Serial.println(led ? "on" : "off");
