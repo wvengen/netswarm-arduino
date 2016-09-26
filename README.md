@@ -75,9 +75,74 @@ Interacting
 -----------
 
 Before we start looking into how different nodes, let's see how we can interact
-with one from the pc.
+with one from the PC. There are several options, depending on your platform:
 
-**TODO**
+* [netswarm-monitor](https://github.com/wvengen/netswarm-webapp) is a web application
+  specifically written for this library, and allows to interact with devices. You do
+  need to have [Python](http://python.org/), though.
+* When you have installed [Python](http://python.org/), [`pymodbus`](#pymodbus) would be useful (see below).
+* On Windows, [ModbusView TCP](https://oceancontrols.com.au/OCS-011.html) might help.
+
+
+### `pymodbus`
+
+When Python is installed on your computer, [pymodbus](https://github.com/bashwork/pymodbus)
+is a convenient way to interact with devices.
+
+First install pymodbus (see its README). Then make sure the Arduino and your
+PC are connected to the same network with an ip-address in the range
+192.168.1.x. Finally, open a Python shell (e.g. `ipython`).
+
+This example assumes your Arduino is running the
+[Dimmer example](examples/Dimmer/Dimmer.pde). Then enter these commands in the
+Python shell:
+
+```python
+from pymodbus.client.sync import *
+c = ModbusTcpClient('192.168.1.177')
+
+# show the current value, which is zero, since the LED is off
+c.read_holding_registers(100).registers
+# => [0]
+
+# turn the LED on
+c.write_register(100, 255);
+
+# show the current value again, which is now 255, the LED is on
+c.read_holding_registers(100).registers
+# => [255]
+```
+
+You see that you can read and write the dimmer register. You can also try other
+values between 0 and 255 to dim the LED.
+
+If you want to use UDP instead of TCP, you can create a new client
+using `c = ModbusUdpClient('192.168.1.177')`.
+
+**Note** If you have trouble configuring your network, you may open
+the file NetSwarm.h and change the default IP-address in the lines with
+`#define NETSWARM_IP_START_1` and beyond. Find the IP-address of your
+PC (e.g. 10.0.0.100), change the last number (e.g. 10.0.0.80), check
+that it isn't used already (run `ping 10.0.0.80` and make sure there is
+no response), and update NetSwarm.h. In this case, that would be:
+
+```cpp
+#define NETSWARM_IP_START_1 10
+#define NETSWARM_IP_START_2  0
+#define NETSWARM_IP_START_3  0
+#define NETSWARM_IP_START_4 80
+```
+
+and upload the sketch again. Now you can connect to that address instead
+(e.g. `c = ModbusTcpClient('10.0.0.80')`).
+
+
+### From an Arduino
+
+You may also want to interact with a NetSwarm device from another Arduino
+(which may or may not be running NetSwarm himself). This is part of the
+modbus-arduino library, using the `ModbusMasterIP` and `ModbusMasterUDP`
+classes. Please see [a network](#a-network) for an example.
 
 
 
